@@ -12,8 +12,16 @@ namespace TheForum
     public class Forum
     {
         private string forumName;
+        public ForumStatistics Statistics { get; }
         private List<Question> questions = new List<Question>();
         public ForumChangesHandler NewContent = null;
+
+        public Forum(string forumName)
+        {
+            this.forumName = forumName;
+            Statistics = new ForumStatistics(this);
+        }
+
         public void CreateQuestion(string question, User user)
         {
             qHistory.Add(DateTime.Now, question);
@@ -39,16 +47,16 @@ namespace TheForum
             var userName = question.UserInfo.UserName;
             int aId = 0;
             if(qId < 10)
-                Console.WriteLine($"\nQuestion ( ID [ 0{question.QId} ] ) {qHistory.ElementAt(qId - 1)} - asked by {userName}");
+                Console.WriteLine($"\nQuestion (ID [0{question.QId}]) {qHistory.ElementAt(qId - 1)} - asked by {userName}");
             else
-                Console.WriteLine($"\nQuestion ( ID [ {question.QId} ] ) {qHistory.ElementAt(qId - 1)} - asked by {userName}");
+                Console.WriteLine($"\nQuestion (ID [{question.QId}]) {qHistory.ElementAt(qId - 1)} - asked by {userName}");
             Console.WriteLine("  Replies:\n");
             foreach (var answer in question.Answers)
             {
                 if(aId < 10)
-                    Console.WriteLine($" - {question.repliers[aId].UserName} replied: {answer} - ID [ 0{aId + 1} ]");
+                    Console.WriteLine($" - {question.repliers[aId].UserName} replied: {answer} - ID [0{aId + 1}]");
                 else
-                    Console.WriteLine($" - {question.repliers[aId].UserName} replied: {answer} - ID [ {aId + 1} ]");
+                    Console.WriteLine($" - {question.repliers[aId].UserName} replied: {answer} - ID [{aId + 1}]");
                 aId++;
             }
         }
@@ -57,15 +65,56 @@ namespace TheForum
             var question = questions[qId - 1];
             return Convert.ToString(qHistory.ElementAt(qId - 1))!;
         }
-        public string GetOnlyAnswer(int qId) // Need only for User event handler 
+        public string[] GetOnlyAnswer(int qId) // Need only for User event handler 
         {
             var question = questions[qId - 1];
-            return Convert.ToString(question.Answers.Last())!;
+            var answer = new string[2];
+            if (question.Answers.Count > 10)
+            {
+                answer[0] = $"{question.Answers.Count}"; 
+                answer[1] = $"{question.Answers.Last()}";
+            }
+            else
+            {
+                answer[0] = $"0{question.Answers.Count}";
+                answer[1] = $"{question.Answers.Last()}";
+            }
+
+            return answer;
         }
         public string GetUserInfo(int qId) // Need only for User event handler 
         {
             var question = questions[qId - 1];
             return question.UserInfo.UserName;
+        }
+        public int[] GetQuestionReplyAmount() // Returns necessery values for ForumStatistics class
+        {
+            var qAmount = 0;
+            var aAmount = 0;
+            var aNone = 0;
+            try
+            {
+                qAmount = qHistory.Count;
+            }
+            catch (InvalidOperationException) 
+            {
+                qAmount = 0;
+            }
+
+            foreach (var question in questions)
+            {
+                try
+                {
+                    aAmount += question.Answers.Count();
+                }
+                catch(InvalidOperationException) 
+                {
+                    aAmount+= 0;
+                    aNone++;
+                }
+            }
+            var result = new int[3] { qAmount, aAmount, aNone };
+            return result;
         }
         public void QuestionAnswers(int qId) // Maybe useless
         {
@@ -76,9 +125,9 @@ namespace TheForum
                 foreach (var aHist in questions[qId - 1].Answers)
                 {
                     if (aId < 10)
-                        Console.WriteLine($" - {aHist} - ID [ 0{aId} ]");
+                        Console.WriteLine($" - {aHist} - ID [0{aId}]");
                     else
-                        Console.WriteLine($" - {aHist} - ID [ {aId} ]");
+                        Console.WriteLine($" - {aHist} - ID [{aId}]");
                     aId++;
                 }
             }
@@ -89,7 +138,7 @@ namespace TheForum
             Console.WriteLine($"\nForum history:\n");
             foreach (var qHist in qHistory)
             {
-                Console.WriteLine($" - {questions[id].UserInfo.UserName} asked: {qHist} - ID [ {questions[id].QId} ]");
+                Console.WriteLine($" - {questions[id].UserInfo.UserName} asked: {qHist} - ID [{questions[id].QId}]");
                 id++;
             }
         }
@@ -107,10 +156,7 @@ namespace TheForum
         //    }
         //}
 
-        public Forum(string forumName) 
-        {
-           this.forumName = forumName;
-        }
+        
 
         private IDictionary<DateTime, string> qHistory = new Dictionary<DateTime, string>();
 

@@ -31,30 +31,30 @@ namespace TheForum
 
                         Console.WriteLine($"\nDear {UserName}! There is some new content on the forum:\n");
                         if (Convert.ToInt32(contentId) < 10)
-                            Console.WriteLine($" - {userName} asked:\n {question} - ID [ 0{contentId} ]");
+                            Console.WriteLine($" - {userName} asked:\n [0{contentId}] {question}");
                         else
-                            Console.WriteLine($" - {userName} asked:\n {question} - ID [ {contentId} ]");
+                            Console.WriteLine($" - {userName} asked:\n [{contentId}] {question}");
                     }
                     else if(contentType == "answer" && userName != UserName)
                     {
                         string question = Forum.GetOnlyQuestion(contentId);
-                        string reply = Forum.GetOnlyAnswer(contentId);
+                        string[] reply = Forum.GetOnlyAnswer(contentId);
 
                         if (Forum.GetUserInfo(contentId) != UserName)
                         {
                             Console.WriteLine($"\nDear {UserName}! There is some new content on the forum:\n");
                             if (Convert.ToInt32(contentId) < 10)
-                                Console.WriteLine($" - {userName} replied on question {question}:\n {reply}");
+                                Console.WriteLine($" - {userName} replied on question [0{contentId}] {question}:\n [{reply[0]}] {reply[1]}");
                             else
-                                Console.WriteLine($" - {userName} replied on question {question}:\n {reply}");
+                                Console.WriteLine($" - {userName} replied on question [{contentId}] {question}:\n [{reply[0]}] {reply[1]}");
                         }
                         else 
                         {
                             Console.WriteLine($"\nDear {UserName}! There is some new content on the forum:\n");
                             if (Convert.ToInt32(contentId) < 10)
-                                Console.WriteLine($" - {userName} replied on your question {question}:\n {reply}");
+                                Console.WriteLine($" - {userName} replied on your question [0{contentId}] {question}:\n [{reply[0]}] {reply[1]}");
                             else
-                                Console.WriteLine($" - {userName} replied on your question {question}:\n {reply}");
+                                Console.WriteLine($" - {userName} replied on your question [{contentId}] {question}:\n [{reply[0]}] {reply[1]}");
                         }
                     }
                     break;
@@ -62,15 +62,15 @@ namespace TheForum
                     if (contentType == "answer" && userName != UserName)
                     {
                         string question = Forum.GetOnlyQuestion(contentId);
-                        string reply = Forum.GetOnlyAnswer(contentId);
+                        string[] reply = Forum.GetOnlyAnswer(contentId);
 
                         if (Forum.GetUserInfo(contentId) == UserName)
                         {
                             Console.WriteLine($"\nDear {UserName}! There is some new content on the forum:\n");
-                            if (Convert.ToInt32(contentId) < 10)
-                                Console.WriteLine($" - {userName} replied on your question {question}:\n {reply}");
+                            if (Convert.ToInt32(contentId) < 10 && Convert.ToInt32(reply[0]) < 10)
+                                Console.WriteLine($" - {userName} replied on your question [0{contentId}] {question}:\n [{reply[0]}] {reply[1]}");
                             else
-                                Console.WriteLine($" - {userName} replied on your question {question}:\n {reply}");
+                                Console.WriteLine($" - {userName} replied on your question [{contentId}] {question}:\n [{reply[0]}] {reply[1]}");
                         }
                     }
                     break;
