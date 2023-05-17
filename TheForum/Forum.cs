@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -8,17 +9,18 @@ using System.Threading.Tasks;
 
 namespace TheForum
 {
-    public delegate void ForumChangesHandler(string userName, int contentId, string contentType);
+    //public delegate void ForumChangesHandler(string userName, int contentId, string contentType);
     public class Forum
     {
-        private string forumName;
-        public ForumStatistics Statistics { get; }
+        public string ForumName { get; }
+        public ForumStatistics Statistics { get; private set; }
         private List<Question> questions = new List<Question>();
-        public ForumChangesHandler NewContent = null;
+        public EventHandler? NewContent = null;
+        public EventHandler? UpdateStats = null;
 
         public Forum(string forumName)
         {
-            this.forumName = forumName;
+            ForumName = forumName;
             Statistics = new ForumStatistics(this);
         }
 
@@ -28,7 +30,8 @@ namespace TheForum
             questions.Add(new Question(questions.Count + 1, user));
             string userName = questions.Last().UserInfo.UserName;
             int questionId = questions.Last().QId;
-            NewContent?.Invoke(userName, questionId, "question");
+            NewContent?.Invoke(this, new ForumEventArgs(userName, questionId, "question"));
+            UpdateStats?.Invoke(this, new ForumEventArgs(GetQuestionReplyAmount()));
         }
         public void AnswerQuestion(int qId, string answer, User user)
         {
@@ -38,7 +41,8 @@ namespace TheForum
             }
             string replierName = questions[qId - 1].repliers.Last().UserName;
             int replyId = questions[qId - 1].Answers.Count;
-            NewContent?.Invoke(replierName, qId, "answer");
+            NewContent?.Invoke(this, new ForumEventArgs(replierName, qId, "answer"));
+            UpdateStats?.Invoke(this, new ForumEventArgs(GetQuestionReplyAmount()));
         }
 
         public void GetQuestion(int qId)
@@ -47,9 +51,9 @@ namespace TheForum
             var userName = question.UserInfo.UserName;
             int aId = 0;
             if(qId < 10)
-                Console.WriteLine($"\nQuestion (ID [0{question.QId}]) {qHistory.ElementAt(qId - 1)} - asked by {userName}");
+                Console.WriteLine($"Question (ID [0{question.QId}]) {qHistory.ElementAt(qId - 1)} - asked by {userName}");
             else
-                Console.WriteLine($"\nQuestion (ID [{question.QId}]) {qHistory.ElementAt(qId - 1)} - asked by {userName}");
+                Console.WriteLine($"Question (ID [{question.QId}]) {qHistory.ElementAt(qId - 1)} - asked by {userName}");
             Console.WriteLine("  Replies:\n");
             foreach (var answer in question.Answers)
             {
@@ -89,87 +93,64 @@ namespace TheForum
         }
         public int[] GetQuestionReplyAmount() // Returns necessery values for ForumStatistics class
         {
-            var qAmount = 0;
+            var qAmount = qHistory.Count;
             var aAmount = 0;
             var aNone = 0;
-            try
-            {
-                qAmount = qHistory.Count;
-            }
-            catch (InvalidOperationException) 
-            {
-                qAmount = 0;
-            }
 
             foreach (var question in questions)
             {
                 try
                 {
-                    aAmount += question.Answers.Count();
+                    aAmount += question.Answers.Count;
+                    if(question.Answers.Count == 0)
+                        aNone++;
                 }
-                catch(InvalidOperationException) 
+                catch(InvalidOperationException)
                 {
-                    aAmount+= 0;
-                    aNone++;
+                    aAmount += 0;
+                    if (question.Answers.Count == 0)
+                        aNone++;
                 }
             }
+
             var result = new int[3] { qAmount, aAmount, aNone };
             return result;
         }
-        public void QuestionAnswers(int qId) // Maybe useless
-        {
-            if (qId > 0)
-            {
-                int aId = 1;
-                Console.WriteLine($"\nAnswers on question \"{qHistory.ElementAt(qId - 1)}\":\n");
-                foreach (var aHist in questions[qId - 1].Answers)
-                {
-                    if (aId < 10)
-                        Console.WriteLine($" - {aHist} - ID [0{aId}]");
-                    else
-                        Console.WriteLine($" - {aHist} - ID [{aId}]");
-                    aId++;
-                }
-            }
-        }
-        public void ForumQuestions()
+
+        public void ForumQuestions() // List of forum questions
         {
             int id = 0;
-            Console.WriteLine($"\nForum history:\n");
+            Console.WriteLine($"Forum history:\n");
             foreach (var qHist in qHistory)
             {
-                Console.WriteLine($" - {questions[id].UserInfo.UserName} asked: {qHist} - ID [{questions[id].QId}]");
+                if(id < 10)
+                    Console.WriteLine($" - {questions[id].UserInfo.UserName} asked: {qHist} - ID [0{questions[id].QId}]");
+                else
+                    Console.WriteLine($" - {questions[id].UserInfo.UserName} asked: {qHist} - ID [{questions[id].QId}]");
                 id++;
             }
         }
-        //private string answer;
-        
-        
-        //private List<Forum> forumQuestions;
-        //public string Answer 
-        //{
-        //    get => answer;
-        //    set
-        //    {
-        //        answer = value;
-        //        answers.Add(DateTime.Now, answer);
-        //    }
-        //}
-
-        
 
         private IDictionary<DateTime, string> qHistory = new Dictionary<DateTime, string>();
 
-        //public IReadOnlyDictionary<DateTime, string> QuestionHistory
-        //        => (IReadOnlyDictionary<DateTime, string>)aHistory;
-        //public IReadOnlyDictionary<DateTime, string> ForumHistory
-        //       => (IReadOnlyDictionary<DateTime, string>)qHistory;
+        public class ForumEventArgs : EventArgs
+        {
+            public string UserName { get; }
+            public int ContentId { get; }
+            public string ContentType { get; }
 
-
-        //public void ForumQuestions()
-        //{
-        //    Console.WriteLine(string.Join(" ", forumQuestions));
-        //}
+            public int[] QRAmount { get; }
+            public ForumEventArgs(string userName, int contentId, string contentType)
+            {
+                UserName = userName;
+                ContentId = contentId;
+                ContentType = contentType;
+            }
+            public ForumEventArgs(int[] qRAmount)
+            {
+                QRAmount= qRAmount;
+            }
+        }
         private class Question // Special class for questions and its answers
         {
             public int QId { get; }
